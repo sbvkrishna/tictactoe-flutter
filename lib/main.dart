@@ -57,8 +57,6 @@ Future gameAPI() async {
   var res = await http.post(url, body: json.encode(data));
   if (res.statusCode == 200) {
     var resBody = json.decode(res.body);
-    print(resBody);
-    print(resBody['status']);
     if (resBody['status'] == 'success') {
       var newBoard = resBody['data'];
       if (newBoard['status'] == 'win') {
@@ -238,7 +236,6 @@ class _BoxState extends State<Box> {
               ),
             )),
         onPressed: () {
-          print(moves);
           if (inputs[widget.index] == '') {
             if (!loading) {
               loading = true;
