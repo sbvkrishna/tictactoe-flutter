@@ -1,5 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class About extends StatelessWidget {
   @override
@@ -19,12 +20,23 @@ Widget get aboutBody {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            'A Simple TicTacToe game made using Flutter!',
-            style: TextStyle(fontSize: 20),
+          RichText(
+            text: TextSpan(children: [
+              TextSpan(
+                text: 'A Simple TicTacToe game made using ',
+                style: TextStyle(color: Colors.black, fontSize: 20),
+              ),
+              TextSpan(
+                  text: 'Flutter',
+                  style: TextStyle(color: Colors.blue, fontSize: 20),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      launch('https://flutter.dev');
+                    })
+            ]),
           ),
           Container(
-            height: 100,
+            height: 150,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
@@ -36,10 +48,14 @@ Widget get aboutBody {
                 Row(
                   children: <Widget>[
                     Icon(Icons.code),
-                    Text(
-                      '  Github: sbvkrishna',
-                      style: TextStyle(fontSize: 20),
-                    ),
+                    InkWell(
+                      child: Text(
+                        '  Github: sbvkrishna',
+                        style: TextStyle(fontSize: 20, color: Colors.blue),
+                      ),
+                      onTap: () =>
+                          {launch('https://www.github.com/sbvkrishna')},
+                    )
                   ],
                 ),
                 Row(
@@ -50,6 +66,22 @@ Widget get aboutBody {
                       style: TextStyle(fontSize: 18),
                     ),
                   ],
+                ),
+                Text(''),
+                RichText(
+                  text: TextSpan(children: [
+                    TextSpan(
+                      text: 'This Game"s Source code is available at ',
+                      style: TextStyle(color: Colors.black, fontSize: 20),
+                    ),
+                    TextSpan(
+                        text: 'Github',
+                        style: TextStyle(color: Colors.blue, fontSize: 20),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            launch('https://www.github.com/sbvkrishna/tictactoe');
+                          })
+                  ]),
                 ),
               ],
             ),

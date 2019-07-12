@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'about.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
 
 void main() => runApp(MyApp());
 
@@ -23,12 +26,57 @@ String status = '';
 String winner = '';
 var lol;
 var turnstate;
+var temp;
 String turn = 'First Move: X';
 void _resetGame() {
   moves = 0;
   status = '';
   inputs = ['', '', '', '', '', '', '', '', ''];
   turn = 'First Move: X';
+  loading = false;
+}
+
+bool loading = false;
+Future gameAPI() async {
+  var url = 'http://perfecttictactoe.herokuapp.com/api/v2/play';
+  Map data = {
+    "player_piece": "o",
+    "opponent_piece": "x",
+    "board": [
+      {"id": "top-left", "value": inputs[0]},
+      {"id": "top-center", "value": inputs[1]},
+      {"id": "top-right", "value": inputs[2]},
+      {"id": "middle-left", "value": inputs[3]},
+      {"id": "middle-center", "value": inputs[4]},
+      {"id": "middle-right", "value": inputs[5]},
+      {"id": "bottom-left", "value": inputs[6]},
+      {"id": "bottom-center", "value": inputs[7]},
+      {"id": "bottom-right", "value": inputs[8]}
+    ]
+  };
+  var res = await http.post(url, body: json.encode(data));
+  if (res.statusCode == 200) {
+    var resBody = json.decode(res.body);
+    print(resBody);
+    print(resBody['status']);
+    if (resBody['status'] == 'success') {
+      var newBoard = resBody['data'];
+      if (newBoard['status'] == 'win') {
+        winner = newBoard['winner'];
+        awaitfnn();
+      } else if (newBoard['status'] == 'draw') {
+        awaitfn('It"s a Draw', 'Want to try again?', 'Go Back', 'New Game');
+      }
+      int i = 0;
+      newBoard['board'].forEach((box) => {inputs[i++] = box['value']});
+    }
+    lol.setState(() {});
+    loading = false;
+    turnstate.setState((){
+      turn='Turn: X';
+      moves++;
+    });
+  }
 }
 
 bool _checkGame() {
@@ -82,17 +130,17 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: Container(
-        padding: EdgeInsets.only(top: 150),
+      body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[_BoxContainer(), Status()],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           setState(() {
-            awaitfn(context, 'Reset?', 'Want to reset the current game?',
-                'Go Back', 'Reset');
+            awaitfn('Reset?', 'Want to reset the current game?', 'Go Back',
+                'Reset');
           });
         },
         tooltip: 'Restart',
@@ -102,9 +150,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-awaitfn(BuildContext context, String title, String content, String btn1,
-    String btn2) async {
-  bool result = await _showAlertBox(context, title, content, btn1, btn2);
+awaitfn(String title, String content, String btn1, String btn2) async {
+  bool result = await _showAlertBox(temp, title, content, btn1, btn2);
   if (result) {
     lol.setState(() {
       _resetGame();
@@ -115,28 +162,28 @@ awaitfn(BuildContext context, String title, String content, String btn1,
 class _BoxContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(
-        child: Container(
-            width: 300,
-            height: 300,
-            decoration: BoxDecoration(
-                color: Colors.white,
-                border: new Border.all(color: Colors.blue),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.blue[100],
-                      blurRadius: 20.0,
-                      spreadRadius: 5.0,
-                      offset: Offset(7.0, 7.0))
-                ]),
-            child: Center(
-                child: GridView.count(
-              primary: false,
-              crossAxisCount: 3,
-              children: List.generate(9, (index) {
-                return Box(index);
-              }),
-            ))));
+    temp = context;
+    return Container(
+        width: 300,
+        height: 300,
+        decoration: BoxDecoration(
+            color: Colors.white,
+            border: new Border.all(color: Colors.blue),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.blue[100],
+                  blurRadius: 20.0,
+                  spreadRadius: 5.0,
+                  offset: Offset(7.0, 7.0))
+            ]),
+        child: Center(
+            child: GridView.count(
+          primary: false,
+          crossAxisCount: 3,
+          children: List.generate(9, (index) {
+            return Box(index);
+          }),
+        )));
   }
 }
 
@@ -147,30 +194,28 @@ class Box extends StatefulWidget {
   _BoxState createState() => _BoxState();
 }
 
-class _BoxState extends State<Box> {
-  void awaitfnn() async {
-    bool result = await _showAlertBox(
-        context, '$winner won!', 'Start a new Game?', 'Exit', 'New Game');
-    if (result) {
-      lol.setState(() {
-        _resetGame();
-      });
-    } else {
-      SystemChannels.platform.invokeMethod('SystemNavigator.pop');
-    }
+void awaitfnn() async {
+  bool result = await _showAlertBox(
+      temp, '$winner won!', 'Start a new Game?', 'Exit', 'New Game');
+  if (result) {
+    lol.setState(() {
+      _resetGame();
+    });
+  } else {
+    SystemChannels.platform.invokeMethod('SystemNavigator.pop');
   }
+}
 
+class _BoxState extends State<Box> {
   void pressed() {
     setState(() {
       moves++;
-      if (!inputs.contains('')) {
-        awaitfn(context, 'It"s a Draw', 'Want to try again?', '', 'New Game');
-      }
       if (_checkGame()) {
         awaitfnn();
       }
       turnstate.setState(() {
-        (moves % 2 == 0) ? turn = 'Turn: X' : turn = 'Turn: O';
+        if(moves % 2 == 0)  turn = 'Turn: X' ;
+        lol.setState(() {});
       });
     });
   }
@@ -193,11 +238,13 @@ class _BoxState extends State<Box> {
               ),
             )),
         onPressed: () {
+          print(moves);
           if (inputs[widget.index] == '') {
-            if (moves % 2 == 0)
-              inputs[widget.index] = 'X';
-            else
-              inputs[widget.index] = 'O';
+            if (!loading) {
+              loading = true;
+              inputs[widget.index] = 'x';
+              gameAPI();
+            }
             pressed();
           }
         });
@@ -209,7 +256,7 @@ Future<bool> _showAlertBox(BuildContext context, String title, String content,
   return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) => AlertDialog(
+      builder: (BuildContext temp) => AlertDialog(
             title: Text(title),
             content: Text(content),
             actions: <Widget>[
