@@ -71,7 +71,7 @@ Widget get aboutBody {
                 RichText(
                   text: TextSpan(children: [
                     TextSpan(
-                      text: 'This Game"s Source code is available at ',
+                      text: 'This Game\'s Source code is available at ',
                       style: TextStyle(color: Colors.black, fontSize: 20),
                     ),
                     TextSpan(

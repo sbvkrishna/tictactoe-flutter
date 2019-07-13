@@ -14,6 +14,8 @@ class MyApp extends StatelessWidget {
       title: 'TicTacToe',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        brightness: Brightness.light,
+        //fontFamily: ''
       ),
       home: MyHomePage(title: 'Tic Tac Toe'),
     );
@@ -28,79 +30,7 @@ var lol;
 var turnstate;
 var temp;
 String turn = 'First Move: X';
-void _resetGame() {
-  moves = 0;
-  status = '';
-  inputs = ['', '', '', '', '', '', '', '', ''];
-  turn = 'First Move: X';
-  loading = false;
-}
-
 bool loading = false;
-Future gameAPI() async {
-  var url = 'http://perfecttictactoe.herokuapp.com/api/v2/play';
-  Map data = {
-    "player_piece": "o",
-    "opponent_piece": "x",
-    "board": [
-      {"id": "top-left", "value": inputs[0]},
-      {"id": "top-center", "value": inputs[1]},
-      {"id": "top-right", "value": inputs[2]},
-      {"id": "middle-left", "value": inputs[3]},
-      {"id": "middle-center", "value": inputs[4]},
-      {"id": "middle-right", "value": inputs[5]},
-      {"id": "bottom-left", "value": inputs[6]},
-      {"id": "bottom-center", "value": inputs[7]},
-      {"id": "bottom-right", "value": inputs[8]}
-    ]
-  };
-  var res = await http.post(url, body: json.encode(data));
-  if (res.statusCode == 200) {
-    var resBody = json.decode(res.body);
-    if (resBody['status'] == 'success') {
-      var newBoard = resBody['data'];
-      if (newBoard['status'] == 'win') {
-        winner = newBoard['winner'];
-        awaitfnn();
-      } else if (newBoard['status'] == 'draw') {
-        awaitfn('It"s a Draw', 'Want to try again?', 'Go Back', 'New Game');
-      }
-      int i = 0;
-      newBoard['board'].forEach((box) => {inputs[i++] = box['value']});
-    }
-    lol.setState(() {});
-    loading = false;
-    turnstate.setState((){
-      turn='Turn: X';
-      moves++;
-    });
-  }
-}
-
-bool _checkGame() {
-  for (int i = 0; i < 9; i += 3) {
-    if (inputs[i] != '' &&
-        inputs[i] == inputs[i + 1] &&
-        inputs[i + 1] == inputs[i + 2]) {
-      winner = inputs[i];
-      return true;
-    }
-  }
-  for (int i = 0; i < 3; i++) {
-    if (inputs[i] != '' &&
-        inputs[i] == inputs[i + 3] &&
-        inputs[i + 3] == inputs[i + 6]) {
-      winner = inputs[i];
-      return true;
-    }
-  }
-  if (inputs[0] != '' && (inputs[0] == inputs[4] && inputs[4] == inputs[8]) ||
-      (inputs[2] != '' && inputs[2] == inputs[4] && inputs[4] == inputs[6])) {
-    winner = inputs[4];
-    return true;
-  }
-  return false;
-}
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
@@ -117,6 +47,12 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: <Widget>[
+          // IconButton(
+          //   icon: Icon(Icons.settings_brightness),
+          //   tooltip: 'Change Theme',
+          //   onPressed: () {
+          //   },
+          // ),
           IconButton(
             icon: Icon(Icons.info),
             tooltip: 'About',
@@ -145,15 +81,6 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Icon(Icons.refresh),
       ),
     );
-  }
-}
-
-awaitfn(String title, String content, String btn1, String btn2) async {
-  bool result = await _showAlertBox(temp, title, content, btn1, btn2);
-  if (result) {
-    lol.setState(() {
-      _resetGame();
-    });
   }
 }
 
@@ -192,18 +119,6 @@ class Box extends StatefulWidget {
   _BoxState createState() => _BoxState();
 }
 
-void awaitfnn() async {
-  bool result = await _showAlertBox(
-      temp, '$winner won!', 'Start a new Game?', 'Exit', 'New Game');
-  if (result) {
-    lol.setState(() {
-      _resetGame();
-    });
-  } else {
-    SystemChannels.platform.invokeMethod('SystemNavigator.pop');
-  }
-}
-
 class _BoxState extends State<Box> {
   void pressed() {
     setState(() {
@@ -212,7 +127,7 @@ class _BoxState extends State<Box> {
         awaitfnn();
       }
       turnstate.setState(() {
-        if(moves % 2 == 0)  turn = 'Turn: X' ;
+        if (moves % 2 == 0) turn = 'Turn: X';
         lol.setState(() {});
       });
     });
@@ -228,7 +143,7 @@ class _BoxState extends State<Box> {
                 border: new Border.all(color: Colors.blue)),
             child: Center(
               child: Text(
-                inputs[widget.index],
+                inputs[widget.index].toUpperCase(),
                 style: TextStyle(
                   fontSize: 45,
                   fontWeight: FontWeight.bold,
@@ -246,33 +161,6 @@ class _BoxState extends State<Box> {
           }
         });
   }
-}
-
-Future<bool> _showAlertBox(BuildContext context, String title, String content,
-    String btn1, String btn2) async {
-  return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext temp) => AlertDialog(
-            title: Text(title),
-            content: Text(content),
-            actions: <Widget>[
-              RaisedButton(
-                color: Colors.white,
-                child: Text(btn1),
-                onPressed: () {
-                  Navigator.of(context).pop(false);
-                },
-              ),
-              RaisedButton(
-                color: Colors.white,
-                child: Text(btn2),
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                },
-              )
-            ],
-          ));
 }
 
 class Status extends StatefulWidget {
@@ -296,5 +184,131 @@ class _StatusState extends State<Status> {
             textAlign: TextAlign.center,
           ),
         ));
+  }
+}
+
+//-------------------------------------TicTacToe game fns ---------------------------
+
+bool _checkGame() {
+  for (int i = 0; i < 9; i += 3) {
+    if (inputs[i] != '' &&
+        inputs[i] == inputs[i + 1] &&
+        inputs[i + 1] == inputs[i + 2]) {
+      winner = inputs[i];
+      return true;
+    }
+  }
+  for (int i = 0; i < 3; i++) {
+    if (inputs[i] != '' &&
+        inputs[i] == inputs[i + 3] &&
+        inputs[i + 3] == inputs[i + 6]) {
+      winner = inputs[i];
+      return true;
+    }
+  }
+  if (inputs[0] != '' && (inputs[0] == inputs[4] && inputs[4] == inputs[8]) ||
+      (inputs[2] != '' && inputs[2] == inputs[4] && inputs[4] == inputs[6])) {
+    winner = inputs[4];
+    return true;
+  }
+  return false;
+}
+
+void _resetGame() {
+  moves = 0;
+  status = '';
+  inputs = ['', '', '', '', '', '', '', '', ''];
+  turn = 'First Move: X';
+  loading = false;
+}
+//------------------------------ Alerts Dialog --------------------------------------
+
+void awaitfnn() async {
+  bool result = await _showAlertBox(
+      temp, '$winner won!', 'Start a new Game?', 'Exit', 'New Game');
+  if (result) {
+    lol.setState(() {
+      _resetGame();
+    });
+  } else {
+    SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+  }
+}
+
+Future<bool> _showAlertBox(BuildContext context, String title, String content,
+    String btn1, String btn2) async {
+  return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext temp) => AlertDialog(
+            title: Text(title.toUpperCase()),
+            content: Text(content),
+            actions: <Widget>[
+              RaisedButton(
+                color: Colors.white,
+                child: Text(btn1),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+              RaisedButton(
+                color: Colors.white,
+                child: Text(btn2),
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+              )
+            ],
+          ));
+}
+
+awaitfn(String title, String content, String btn1, String btn2) async {
+  bool result = await _showAlertBox(temp, title, content, btn1, btn2);
+  if (result) {
+    lol.setState(() {
+      _resetGame();
+    });
+  }
+}
+
+//---------------------------------------- API ----------------------------------
+
+Future gameAPI() async {
+  var url = 'http://perfecttictactoe.herokuapp.com/api/v2/play';
+  Map data = {
+    "player_piece": "o",
+    "opponent_piece": "x",
+    "board": [
+      {"id": "top-left", "value": inputs[0]},
+      {"id": "top-center", "value": inputs[1]},
+      {"id": "top-right", "value": inputs[2]},
+      {"id": "middle-left", "value": inputs[3]},
+      {"id": "middle-center", "value": inputs[4]},
+      {"id": "middle-right", "value": inputs[5]},
+      {"id": "bottom-left", "value": inputs[6]},
+      {"id": "bottom-center", "value": inputs[7]},
+      {"id": "bottom-right", "value": inputs[8]}
+    ]
+  };
+  var res = await http.post(url, body: json.encode(data));
+  if (res.statusCode == 200) {
+    var resBody = json.decode(res.body);
+    if (resBody['status'] == 'success') {
+      var newBoard = resBody['data'];
+      if (newBoard['status'] == 'win') {
+        winner = newBoard['winner'];
+        awaitfnn();
+      } else if (newBoard['status'] == 'draw') {
+        awaitfn('It"s a Draw', 'Want to try again?', 'Go Back', 'New Game');
+      }
+      int i = 0;
+      newBoard['board'].forEach((box) => {inputs[i++] = box['value']});
+    }
+    lol.setState(() {});
+    loading = false;
+    turnstate.setState(() {
+      turn = 'Turn: X';
+      moves++;
+    });
   }
 }
