@@ -15,6 +15,10 @@ class About extends StatelessWidget {
 
 Widget get aboutBody {
   return Container(
+      decoration: BoxDecoration(
+          gradient: LinearGradient(
+              begin: Alignment.topRight, end: Alignment.bottomLeft,
+              colors: [const Color(0xFFB3E5FC), const Color(0xFF2196F3)])),
       padding: EdgeInsets.all(20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -28,7 +32,7 @@ Widget get aboutBody {
               ),
               TextSpan(
                   text: 'Flutter',
-                  style: TextStyle(color: Colors.blue, fontSize: 20),
+                  style: TextStyle(color: Colors.blue[900], fontSize: 20),
                   recognizer: TapGestureRecognizer()
                     ..onTap = () {
                       launch('https://flutter.dev');
@@ -50,11 +54,11 @@ Widget get aboutBody {
                     Icon(Icons.code),
                     InkWell(
                       child: Text(
-                        '  Github: sbvkrishna',
-                        style: TextStyle(fontSize: 20, color: Colors.blue),
+                        '  Github: @sbvkrishna',
+                        style: TextStyle(fontSize: 20, color: Colors.blue[900]),
                       ),
                       onTap: () =>
-                          {launch('https://www.github.com/sbvkrishna')},
+                          {launch('https://github.com/sbvkrishna')},
                     )
                   ],
                 ),
@@ -76,10 +80,11 @@ Widget get aboutBody {
                     ),
                     TextSpan(
                         text: 'Github',
-                        style: TextStyle(color: Colors.blue, fontSize: 20),
+                        style: TextStyle(color: Colors.blue[900], fontSize: 20),
                         recognizer: TapGestureRecognizer()
                           ..onTap = () {
-                            launch('https://www.github.com/sbvkrishna/tictactoe');
+                            launch(
+                                'https://github.com/sbvkrishna/tictactoe-flutter');
                           })
                   ]),
                 ),
