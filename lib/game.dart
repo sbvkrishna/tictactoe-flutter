@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'about.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:async';
 
 int moves = 0;
@@ -33,7 +31,7 @@ class _GamePageState extends State<GamePage> {
     return Scaffold(
       appBar: AppBar(
         //leading: Container(width: 0,height: 0,),
-        title: Text(vsBot?'Playing vs Bot':'Playing vs Friend'),
+        title: Text(vsBot ? 'Playing vs Bot' : 'Playing vs Friend'),
         actions: <Widget>[
           // IconButton(
           //   icon: Icon(Icons.settings_brightness),
@@ -112,19 +110,19 @@ class Box extends StatefulWidget {
 
 class _BoxState extends State<Box> {
   void pressed() {
+    print(moves);
     setState(() {
       moves++;
       if (_checkGame()) {
         awaitfnn();
-      }
-      else if(moves==9){
+      } else if (moves >= 9) {
         awaitfn('It\'s a Draw', 'Want to try again?', 'Go Back', 'New Game');
       }
       turnstate.setState(() {
         if (moves % 2 == 0)
-          turn = 'Turn: X';
-        else
           turn = 'Turn: O';
+        else
+          turn = 'Turn: X';
         lol.setState(() {});
       });
     });
@@ -150,13 +148,17 @@ class _BoxState extends State<Box> {
         onPressed: () {
           if (inputs[widget.index] == '') {
             if (vsBot == false) {
-              if(moves%2==0) inputs[widget.index] = 'x';
-              else inputs[widget.index] = 'o';
-              
+              if (moves % 2 == 0)
+                inputs[widget.index] = 'x';
+              else
+                inputs[widget.index] = 'o';
             } else if (!loading) {
               loading = true;
-              inputs[widget.index] = 'x';
-              gameAPI();
+              inputs[widget.index] = 'o';
+              if (moves >= 8) {
+              } else
+                _bestMove(inputs);
+              //print(inputs);
             }
             //print(vsBot);
             pressed();
@@ -273,44 +275,144 @@ awaitfn(String title, String content, String btn1, String btn2) async {
   }
 }
 
-//---------------------------------------- API ----------------------------------
+//------------------------------ MIN-MAX ------------------------------------------
 
-Future gameAPI() async {
-  var url = 'http://perfecttictactoe.herokuapp.com/api/v2/play';
-  Map data = {
-    "player_piece": "o",
-    "opponent_piece": "x",
-    "board": [
-      {"id": "top-left", "value": inputs[0]},
-      {"id": "top-center", "value": inputs[1]},
-      {"id": "top-right", "value": inputs[2]},
-      {"id": "middle-left", "value": inputs[3]},
-      {"id": "middle-center", "value": inputs[4]},
-      {"id": "middle-right", "value": inputs[5]},
-      {"id": "bottom-left", "value": inputs[6]},
-      {"id": "bottom-center", "value": inputs[7]},
-      {"id": "bottom-right", "value": inputs[8]}
-    ]
-  };
-  var res = await http.post(url, body: json.encode(data));
-  if (res.statusCode == 200) {
-    var resBody = json.decode(res.body);
-    if (resBody['status'] == 'success') {
-      var newBoard = resBody['data'];
-      if (newBoard['status'] == 'win') {
-        winner = newBoard['winner'];
-        awaitfnn();
-      } else if (newBoard['status'] == 'draw') {
-        awaitfn('It"s a Draw', 'Want to try again?', 'Go Back', 'New Game');
-      }
-      int i = 0;
-      newBoard['board'].forEach((box) => {inputs[i++] = box['value']});
+int max(int a, int b) {
+  return a > b ? a : b;
+}
+int min(int a, int b) {
+  return a < b ? a : b;
+}
+
+String player = 'x', opponent = 'o';
+
+bool isMovesLeft(List<String> inputs) {
+  int i;
+  for (i = 0; i < 9; i++) {
+    if (inputs[i] == '') return true;
+  }
+  return false;
+}
+
+int _eval(List<String> inputs) {
+  for (int i = 0; i < 9; i += 3) {
+    if (inputs[i] != '' &&
+        inputs[i] == inputs[i + 1] &&
+        inputs[i + 1] == inputs[i + 2]) {
+      winner = inputs[i];
+      return (winner == player) ? 10 : -10;
     }
-    lol.setState(() {});
-    loading = false;
-    turnstate.setState(() {
-      turn = 'Turn: X';
-      moves++;
-    });
+  }
+  for (int i = 0; i < 3; i++) {
+    if (inputs[i] != '' &&
+        inputs[i] == inputs[i + 3] &&
+        inputs[i + 3] == inputs[i + 6]) {
+      winner = inputs[i];
+      return (winner == player) ? 10 : -10;
+    }
+  }
+  if (inputs[0] != '' && (inputs[0] == inputs[4] && inputs[4] == inputs[8]) ||
+      (inputs[2] != '' && inputs[2] == inputs[4] && inputs[4] == inputs[6])) {
+    winner = inputs[4];
+    return (winner == player) ? 10 : -10;
+  }
+  return 0;
+}
+
+int minmax(List<String> inputs, int depth, bool isMax) {
+  int score = _eval(inputs);
+  //print(score);
+  int best = 0, i;
+
+  if (score == 10 || score == -10) return score;
+  if (!isMovesLeft(inputs)) return 0;
+  if (isMax) {
+    best = -1000;
+    for (i = 0; i < 9; i++) {
+      if (inputs[i] == '') {
+        inputs[i] = player;
+        best = max(best, minmax(inputs, depth + 1, !isMax));
+        inputs[i] = '';
+      }
+    }
+    return best;
+  } else {
+    best = 1000;
+    for (i = 0; i < 9; i++) {
+      if (inputs[i] == '') {
+        inputs[i] = opponent;
+        best = min(best, minmax(inputs, depth + 1, !isMax));
+        inputs[i] = '';
+      }
+    }
+    //print(best);
+    return best;
   }
 }
+
+int _bestMove(List<String> inputs) {
+  int bestMove = -1000, moveVal;
+  int i, bi;
+  for (i = 0; i < 9; i++) {
+    if (inputs[i] == '') {
+      moveVal = -1000;
+      inputs[i] = player;
+      moveVal = minmax(inputs, 0, false);
+      inputs[i] = '';
+      if (moveVal > bestMove) {
+        bestMove = moveVal;
+        bi = i;
+      }
+    }
+  }
+  inputs[bi] = player;
+  lol.setState(() {});
+  loading = false;
+  turnstate.setState(() {
+    turn = 'Turn: X';
+    moves++;
+  });
+  return bestMove;
+}
+
+//---------------------------------------- API ----------------------------------
+
+// Future gameAPI() async {
+//   var url = 'http://perfecttictactoe.herokuapp.com/api/v2/play';
+//   Map data = {
+//     "player_piece": "o",
+//     "opponent_piece": "x",
+//     "board": [
+//       {"id": "top-left", "value": inputs[0]},
+//       {"id": "top-center", "value": inputs[1]},
+//       {"id": "top-right", "value": inputs[2]},
+//       {"id": "middle-left", "value": inputs[3]},
+//       {"id": "middle-center", "value": inputs[4]},
+//       {"id": "middle-right", "value": inputs[5]},
+//       {"id": "bottom-left", "value": inputs[6]},
+//       {"id": "bottom-center", "value": inputs[7]},
+//       {"id": "bottom-right", "value": inputs[8]}
+//     ]
+//   };
+//   var res = await http.post(url, body: json.encode(data));
+//   if (res.statusCode == 200) {
+//     var resBody = json.decode(res.body);
+//     if (resBody['status'] == 'success') {
+//       var newBoard = resBody['data'];
+//       if (newBoard['status'] == 'win') {
+//         winner = newBoard['winner'];
+//         awaitfnn();
+//       } else if (newBoard['status'] == 'draw') {
+//         awaitfn('It"s a Draw', 'Want to try again?', 'Go Back', 'New Game');
+//       }
+//       int i = 0;
+//       newBoard['board'].forEach((box) => {inputs[i++] = box['value']});
+//     }
+//     lol.setState(() {});
+//     loading = false;
+//     turnstate.setState(() {
+//       turn = 'Turn: X';
+//       moves++;
+//     });
+//   }
+// }
