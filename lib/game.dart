@@ -3,14 +3,14 @@ import 'package:flutter/services.dart';
 import 'about.dart';
 import 'dart:async';
 
-int moves = 0;
-List<String> inputs = ['', '', '', '', '', '', '', '', ''];
+int currentMoves = 0;
+List<String> _board = ['', '', '', '', '', '', '', '', '']; //empty board
 String status = '';
 String winner = '';
-var lol;
-var turnstate;
-var temp;
-String turn = 'First Move: X';
+var _gamePageState;
+var _turnState;
+var _context;
+String _turn = 'First Move: X';
 bool loading = false;
 bool vsBot;
 
@@ -19,6 +19,7 @@ class GamePage extends StatefulWidget {
   GamePage(this.isBot) {
     _resetGame();
     vsBot = this.isBot;
+    if (vsBot) _turn = 'First Move: O';
   }
   @override
   _GamePageState createState() => _GamePageState();
@@ -27,7 +28,7 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   @override
   Widget build(BuildContext context) {
-    lol = this;
+    _gamePageState = this;
     return Scaffold(
       appBar: AppBar(
         //leading: Container(width: 0,height: 0,),
@@ -76,7 +77,7 @@ class _GamePageState extends State<GamePage> {
 class _BoxContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    temp = context;
+    _context = context;
     return Container(
         width: 300,
         height: 300,
@@ -110,20 +111,20 @@ class Box extends StatefulWidget {
 
 class _BoxState extends State<Box> {
   void pressed() {
-    print(moves);
+    print(currentMoves);
     setState(() {
-      moves++;
+      currentMoves++;
       if (_checkGame()) {
         awaitfnn();
-      } else if (moves >= 9) {
+      } else if (currentMoves >= 9) {
         awaitfn('It\'s a Draw', 'Want to try again?', 'Go Back', 'New Game');
       }
-      turnstate.setState(() {
-        if (moves % 2 == 0)
-          turn = 'Turn: O';
+      _turnState.setState(() {
+        if (currentMoves % 2 == 0)
+          _turn = 'Turn: O';
         else
-          turn = 'Turn: X';
-        lol.setState(() {});
+          _turn = 'Turn: X';
+        _gamePageState.setState(() {});
       });
     });
   }
@@ -138,7 +139,7 @@ class _BoxState extends State<Box> {
                 border: new Border.all(color: Colors.blue)),
             child: Center(
               child: Text(
-                inputs[widget.index].toUpperCase(),
+                _board[widget.index].toUpperCase(),
                 style: TextStyle(
                   fontSize: 45,
                   fontWeight: FontWeight.bold,
@@ -146,19 +147,19 @@ class _BoxState extends State<Box> {
               ),
             )),
         onPressed: () {
-          if (inputs[widget.index] == '') {
+          if (_board[widget.index] == '') {
             if (vsBot == false) {
-              if (moves % 2 == 0)
-                inputs[widget.index] = 'x';
+              if (currentMoves % 2 == 0)
+                _board[widget.index] = 'x';
               else
-                inputs[widget.index] = 'o';
+                _board[widget.index] = 'o';
             } else if (!loading) {
               loading = true;
-              inputs[widget.index] = 'o';
-              if (moves >= 8) {
+              _board[widget.index] = 'o';
+              if (currentMoves >= 8) {
               } else
-                _bestMove(inputs);
-              //print(inputs);
+                _bestMove(_board);
+              //print(_board);
             }
             //print(vsBot);
             pressed();
@@ -175,7 +176,7 @@ class Status extends StatefulWidget {
 class _StatusState extends State<Status> {
   @override
   Widget build(BuildContext context) {
-    turnstate = this;
+    _turnState = this;
     return Card(
         margin: EdgeInsets.all(40),
         child: Container(
@@ -183,7 +184,7 @@ class _StatusState extends State<Status> {
           height: 60,
           padding: EdgeInsets.fromLTRB(20, 10, 20, 10),
           child: Text(
-            turn,
+            _turn,
             style: TextStyle(fontSize: 30),
             textAlign: TextAlign.center,
           ),
@@ -195,43 +196,43 @@ class _StatusState extends State<Status> {
 
 bool _checkGame() {
   for (int i = 0; i < 9; i += 3) {
-    if (inputs[i] != '' &&
-        inputs[i] == inputs[i + 1] &&
-        inputs[i + 1] == inputs[i + 2]) {
-      winner = inputs[i];
+    if (_board[i] != '' &&
+        _board[i] == _board[i + 1] &&
+        _board[i + 1] == _board[i + 2]) {
+      winner = _board[i];
       return true;
     }
   }
   for (int i = 0; i < 3; i++) {
-    if (inputs[i] != '' &&
-        inputs[i] == inputs[i + 3] &&
-        inputs[i + 3] == inputs[i + 6]) {
-      winner = inputs[i];
+    if (_board[i] != '' &&
+        _board[i] == _board[i + 3] &&
+        _board[i + 3] == _board[i + 6]) {
+      winner = _board[i];
       return true;
     }
   }
-  if (inputs[0] != '' && (inputs[0] == inputs[4] && inputs[4] == inputs[8]) ||
-      (inputs[2] != '' && inputs[2] == inputs[4] && inputs[4] == inputs[6])) {
-    winner = inputs[4];
+  if (_board[0] != '' && (_board[0] == _board[4] && _board[4] == _board[8]) ||
+      (_board[2] != '' && _board[2] == _board[4] && _board[4] == _board[6])) {
+    winner = _board[4];
     return true;
   }
   return false;
 }
 
 void _resetGame() {
-  moves = 0;
+  currentMoves = 0;
   status = '';
-  inputs = ['', '', '', '', '', '', '', '', ''];
-  turn = 'First Move: X';
+  _board = ['', '', '', '', '', '', '', '', ''];
+  _turn = 'First Move: X';
   loading = false;
 }
 //------------------------------ Alerts Dialog --------------------------------------
 
 void awaitfnn() async {
   bool result = await _showAlertBox(
-      temp, '$winner won!', 'Start a new Game?', 'Exit', 'New Game');
+      _context, '$winner won!', 'Start a new Game?', 'Exit', 'New Game');
   if (result) {
-    lol.setState(() {
+    _gamePageState.setState(() {
       _resetGame();
     });
   } else {
@@ -244,7 +245,7 @@ Future<bool> _showAlertBox(BuildContext context, String title, String content,
   return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext temp) => AlertDialog(
+      builder: (BuildContext _context) => AlertDialog(
             title: Text(title.toUpperCase()),
             content: Text(content),
             actions: <Widget>[
@@ -267,9 +268,9 @@ Future<bool> _showAlertBox(BuildContext context, String title, String content,
 }
 
 awaitfn(String title, String content, String btn1, String btn2) async {
-  bool result = await _showAlertBox(temp, title, content, btn1, btn2);
+  bool result = await _showAlertBox(_context, title, content, btn1, btn2);
   if (result) {
-    lol.setState(() {
+    _gamePageState.setState(() {
       _resetGame();
     });
   }
@@ -280,69 +281,70 @@ awaitfn(String title, String content, String btn1, String btn2) async {
 int max(int a, int b) {
   return a > b ? a : b;
 }
+
 int min(int a, int b) {
   return a < b ? a : b;
 }
 
 String player = 'x', opponent = 'o';
 
-bool isMovesLeft(List<String> inputs) {
+bool isMovesLeft(List<String> _board) {
   int i;
   for (i = 0; i < 9; i++) {
-    if (inputs[i] == '') return true;
+    if (_board[i] == '') return true;
   }
   return false;
 }
 
-int _eval(List<String> inputs) {
+int _eval(List<String> _board) {
   for (int i = 0; i < 9; i += 3) {
-    if (inputs[i] != '' &&
-        inputs[i] == inputs[i + 1] &&
-        inputs[i + 1] == inputs[i + 2]) {
-      winner = inputs[i];
+    if (_board[i] != '' &&
+        _board[i] == _board[i + 1] &&
+        _board[i + 1] == _board[i + 2]) {
+      winner = _board[i];
       return (winner == player) ? 10 : -10;
     }
   }
   for (int i = 0; i < 3; i++) {
-    if (inputs[i] != '' &&
-        inputs[i] == inputs[i + 3] &&
-        inputs[i + 3] == inputs[i + 6]) {
-      winner = inputs[i];
+    if (_board[i] != '' &&
+        _board[i] == _board[i + 3] &&
+        _board[i + 3] == _board[i + 6]) {
+      winner = _board[i];
       return (winner == player) ? 10 : -10;
     }
   }
-  if (inputs[0] != '' && (inputs[0] == inputs[4] && inputs[4] == inputs[8]) ||
-      (inputs[2] != '' && inputs[2] == inputs[4] && inputs[4] == inputs[6])) {
-    winner = inputs[4];
+  if (_board[0] != '' && (_board[0] == _board[4] && _board[4] == _board[8]) ||
+      (_board[2] != '' && _board[2] == _board[4] && _board[4] == _board[6])) {
+    winner = _board[4];
     return (winner == player) ? 10 : -10;
   }
   return 0;
 }
 
-int minmax(List<String> inputs, int depth, bool isMax) {
-  int score = _eval(inputs);
+int minmax(List<String> _board, int depth, bool isMax) {
+  int score = _eval(_board);
   //print(score);
   int best = 0, i;
 
   if (score == 10 || score == -10) return score;
-  if (!isMovesLeft(inputs)) return 0;
+  if (!isMovesLeft(_board)) return 0;
   if (isMax) {
     best = -1000;
     for (i = 0; i < 9; i++) {
-      if (inputs[i] == '') {
-        inputs[i] = player;
-        best = max(best, minmax(inputs, depth + 1, !isMax));
-        inputs[i] = '';
+      if (_board[i] == '') {
+        _board[i] = player;
+        best = max(best, minmax(_board, depth + 1, !isMax));
+        _board[i] = '';
       }
     }
     return best;
   } else {
     best = 1000;
     for (i = 0; i < 9; i++) {
-      if (inputs[i] == '') {
-        inputs[i] = opponent;
-        best = min(best, minmax(inputs, depth + 1, !isMax));
-        inputs[i] = '';
+      if (_board[i] == '') {
+        _board[i] = opponent;
+        best = min(best, minmax(_board, depth + 1, !isMax));
+        _board[i] = '';
       }
     }
     //print(best);
@@ -350,27 +352,27 @@ int minmax(List<String> inputs, int depth, bool isMax) {
   }
 }
 
-int _bestMove(List<String> inputs) {
+int _bestMove(List<String> _board) {
   int bestMove = -1000, moveVal;
   int i, bi;
   for (i = 0; i < 9; i++) {
-    if (inputs[i] == '') {
+    if (_board[i] == '') {
       moveVal = -1000;
-      inputs[i] = player;
-      moveVal = minmax(inputs, 0, false);
-      inputs[i] = '';
+      _board[i] = player;
+      moveVal = minmax(_board, 0, false);
+      _board[i] = '';
       if (moveVal > bestMove) {
         bestMove = moveVal;
         bi = i;
       }
     }
   }
-  inputs[bi] = player;
-  lol.setState(() {});
+  _board[bi] = player;
+  _gamePageState.setState(() {});
   loading = false;
-  turnstate.setState(() {
-    turn = 'Turn: X';
-    moves++;
+  _turnState.setState(() {
+    _turn = 'Turn: X';
+    currentMoves++;
   });
   return bestMove;
 }
@@ -383,15 +385,15 @@ int _bestMove(List<String> inputs) {
 //     "player_piece": "o",
 //     "opponent_piece": "x",
 //     "board": [
-//       {"id": "top-left", "value": inputs[0]},
-//       {"id": "top-center", "value": inputs[1]},
-//       {"id": "top-right", "value": inputs[2]},
-//       {"id": "middle-left", "value": inputs[3]},
-//       {"id": "middle-center", "value": inputs[4]},
-//       {"id": "middle-right", "value": inputs[5]},
-//       {"id": "bottom-left", "value": inputs[6]},
-//       {"id": "bottom-center", "value": inputs[7]},
-//       {"id": "bottom-right", "value": inputs[8]}
+//       {"id": "top-left", "value": _board[0]},
+//       {"id": "top-center", "value": _board[1]},
+//       {"id": "top-right", "value": _board[2]},
+//       {"id": "middle-left", "value": _board[3]},
+//       {"id": "middle-center", "value": _board[4]},
+//       {"id": "middle-right", "value": _board[5]},
+//       {"id": "bottom-left", "value": _board[6]},
+//       {"id": "bottom-center", "value": _board[7]},
+//       {"id": "bottom-right", "value": _board[8]}
 //     ]
 //   };
 //   var res = await http.post(url, body: json.encode(data));
@@ -406,13 +408,13 @@ int _bestMove(List<String> inputs) {
 //         awaitfn('It"s a Draw', 'Want to try again?', 'Go Back', 'New Game');
 //       }
 //       int i = 0;
-//       newBoard['board'].forEach((box) => {inputs[i++] = box['value']});
+//       newBoard['board'].forEach((box) => {_board[i++] = box['value']});
 //     }
-//     lol.setState(() {});
+//     _gamePageState.setState(() {});
 //     loading = false;
-//     turnstate.setState(() {
-//       turn = 'Turn: X';
-//       moves++;
+//     _turnState.setState(() {
+//       _turn = 'Turn: X';
+//       currentMoves++;
 //     });
 //   }
 // }
