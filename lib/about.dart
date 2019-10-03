@@ -54,7 +54,7 @@ Widget get aboutBody {
                     Icon(Icons.code),
                     InkWell(
                       child: Text(
-                        '  Github: @sbvkrishna',
+                        '  Github: sbvkrishna',
                         style: TextStyle(fontSize: 20, color: Colors.blue[900]),
                       ),
                       onTap: () =>
